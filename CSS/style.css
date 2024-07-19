@@ -191,3 +191,6 @@ form > textarea {
 .d-none {
   display: none;
 }
+.card > img#profile-img {
+  height: 16em;
+}

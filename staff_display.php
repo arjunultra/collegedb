@@ -1,7 +1,7 @@
 <?php
 require_once "./includes/connection_DB.php";
 $rows = [];
-$sqlListing = "SELECT * FROM staff";
+$sqlListing = "SELECT * FROM staff Where display_type = 'public'";
 $resultListing = mysqli_query($conn, $sqlListing);
 
 if (mysqli_num_rows($resultListing) > 0) {
@@ -23,19 +23,20 @@ if (mysqli_num_rows($resultListing) > 0) {
 </head>
 
 <body>
-    <div class="container-fluid justify-content-center row">
+    <div class="justify-content-center align-items-center d-flex row vh-100">
         <?php
         if (!empty($rows)) {
             foreach ($rows as $row) {
                 ?>
-                <div class="card" style="width: 18rem;">
-                    <img src="./uploads/<?php echo ($row['photo']); ?>" class="card-img-top" alt="...">
+                <div class="card" style="width: 18rem; height: auto;">
+                    <img id="profile-img" src="./uploads/<?php echo ($row['photo']); ?>" class="card-img-top" alt="...">
                     <div class="card-body">
                         <h3 class="card-title"><?php echo ($row['name']); ?></h3>
                         <p class="card-text"><?php echo ($row['description']); ?></p>
                         <button type="button" class="btn btn-primary show-details-btn" data-bs-toggle="modal"
-                            data-bs-target="#exampleModal" data-img="./uploads/<?php echo ($row['photo']); ?>"
-                            data-title="<?php echo ($row['name']); ?>" data-description="<?php echo ($row['description']); ?>"
+                            data-bs-target="#exampleModal" data-id="<?php echo ($row['id']); ?>"
+                            data-img="./uploads/<?php echo ($row['photo']); ?>" data-title="<?php echo ($row['name']); ?>"
+                            data-description="<?php echo ($row['description']); ?>"
                             data-qualification="<?php echo "Qualification: " . ($row['qualification']); ?>"
                             data-subject="<?php echo "Handling Subject - " . ($row['subject']); ?>"
                             data-experience="<?php echo "Experience: " . $row['experience'] . " years"; ?>"
@@ -70,6 +71,16 @@ if (mysqli_num_rows($resultListing) > 0) {
                     <p id="modal-address"></p>
                     <p id="modal-doj"></p>
                     <p id="display-type"></p>
+                    <form action="process_form.php" method="post">
+                        <input type="hidden" name="card_id" id="card-id">
+                        <input type="hidden" name="card_title" id="card-title">
+                        <input type="hidden" name="card_email" id="card-email">
+                        <label for="sender-name">Name: <input class="form-control" type="text" name="sender_name"
+                                id="sender-name"></label>
+                        <label for="sender-message">Message: <input class="form-control" type="text"
+                                name="sender_message" id="sender-message"></label>
+                        <input class="d-block mx-auto btn btn-primary" name="submit" type="submit" value="Submit">
+                    </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -83,6 +94,7 @@ if (mysqli_num_rows($resultListing) > 0) {
             const exampleModal = document.getElementById('exampleModal');
             exampleModal.addEventListener('show.bs.modal', (event) => {
                 const button = event.relatedTarget;
+                const id = button.dataset.id;
                 const img = button.dataset.img;
                 const title = button.dataset.title;
                 const description = button.dataset.description;
@@ -105,6 +117,9 @@ if (mysqli_num_rows($resultListing) > 0) {
                 const modalEmail = exampleModal.querySelector('#modal-email');
                 const modalAddress = exampleModal.querySelector('#modal-address');
                 const modalDoj = exampleModal.querySelector('#modal-doj');
+                const cardId = exampleModal.querySelector('#card-id');
+                const cardTitle = exampleModal.querySelector('#card-title');
+                const cardEmail = exampleModal.querySelector('#card-email');
 
                 modalImg.src = img;
                 modalTitle.textContent = title;
@@ -116,6 +131,9 @@ if (mysqli_num_rows($resultListing) > 0) {
                 modalEmail.textContent = email;
                 modalAddress.textContent = address;
                 modalDoj.textContent = doj;
+                cardId.value = id;
+                cardTitle.value = title;
+                cardEmail.value = email;
             });
         });
     </script>
