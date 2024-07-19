@@ -2,7 +2,7 @@
 require_once "./includes/connection_DB.php";
 
 // Variables
-$staffPhoto = $staffName = $staffQualification = $staffExperience = $staffMobile = $staffSubject = $staffEmail = $staffAddress = $staffDOJ = $staffDesc = $displayType = "";
+$staffPhoto = $staffName = $staffQualification = $staffExperience = $staffMobile = $staffSubject = $staffEmail = $staffAddress = $staffDOJ = $staffDesc = $displayType = $subjectName = "";
 
 // Error variables
 $photoErr = $nameErr = $qualificationErr = $experienceErr = $mobileErr = $subjectErr = $emailErr = $addressErr = $dojErr = $descErr = $duplicateEntryError = "";
@@ -25,7 +25,7 @@ $createTableQuery = "CREATE TABLE IF NOT EXISTS staff (
     description VARCHAR(255) NOT NULL,
     display_type VARCHAR(255))";
 if (mysqli_query($conn, $createTableQuery)) {
-    echo "Table checked/created successfully.";
+    $msg = "Table checked/created successfully.";
 } else {
     echo "Error creating table: " . mysqli_error($conn);
 }
@@ -44,6 +44,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $staffDOJ = isset($_POST['staffDOJ']) ? $_POST['staffDOJ'] : "";
     $staffDesc = isset($_POST['staffDesc']) ? $_POST['staffDesc'] : "";
     $displayType = isset($_POST['displayType']) ? $_POST['displayType'] : "";
+    $subjectName = isset($_POST['subject_select']) ? $_POST['subject_select'] : "";
 
     // Validation
     $isValid = true;
@@ -52,7 +53,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $nameErr = "Invalid name format";
         $isValid = false;
     }
-    if (!preg_match("/^[a-zA-Z0-9 ]*$/", $staffQualification)) {
+    if (!preg_match("/^[\w\s!@#$%^&*(),.?\":{}|<>]*$/", $staffQualification)) {
         $qualificationErr = "Invalid qualification format";
         $isValid = false;
     }
@@ -147,6 +148,17 @@ if ($update_id) {
         $update_display_type = $row['display_type'];
     }
 }
+// Fetch subjects data from subjects table
+$sqlSubjects = "SELECT * FROM subjects";
+$resultSubjects = mysqli_query($conn, $sqlSubjects);
+$subjectOptions = "";
+
+if (mysqli_num_rows($resultSubjects) > 0) {
+    while ($row = mysqli_fetch_assoc($resultSubjects)) {
+        $selected = ($row['subject_name'] == $subjectName) ? 'selected' : '';
+        $subjectOptions .= "<option value='" . $row['subject_name'] . "' $selected>" . $row['subject_name'] . "</option>";
+    }
+}
 ?>
 
 
@@ -168,44 +180,47 @@ if ($update_id) {
             <input class="form-control" type="hidden" name="update_id" value="<?php echo $update_id; ?>">
             <label for="staffPhoto">Photo:</label>
             <input class="form-control" type="file" name="staffPhoto">
-            <span><?php echo $photoErr; ?></span>
+            <span class="alert-danger"><?php echo $photoErr; ?></span>
 
             <label for="staffName">Name:</label>
             <input class="form-control" type="text" name="staffName" value="<?php echo $update_name; ?>">
-            <span><?php echo $nameErr; ?></span>
+            <span class="alert-danger"><?php echo $nameErr; ?></span>
 
             <label for="staffQualification">Qualification:</label>
             <input class="form-control" type="text" name="staffQualification"
                 value="<?php echo $update_Qualification; ?>">
-            <span><?php echo $qualificationErr; ?></span>
+            <span class="alert-danger"><?php echo $qualificationErr; ?></span>
 
             <label for="staffExperience">Experience:</label>
             <input class="form-control" type="text" name="staffExperience" value="<?php echo $update_experience; ?>">
-            <span><?php echo $experienceErr; ?></span>
+            <span class="alert-danger"><?php echo $experienceErr; ?></span>
 
             <label for="staffMobile">Mobile:</label>
             <input class="form-control" type="text" name="staffMobile" value="<?php echo $update_mobile; ?>">
-            <span><?php echo $mobileErr; ?></span>
+            <span class="alert-danger"><?php echo $mobileErr; ?></span>
 
             <label for="staffSubject">Subject:</label>
-            <input class="form-control" type="text" name="staffSubject" value="<?php echo $update_subject; ?>">
-            <span><?php echo $subjectErr; ?></span>
+            <select name="subject_select" id="subject-select">
+                <option selected value="">Select a Subject</option>
+                <?php echo $subjectOptions ?>
+            </select>
+            <span class="alert-danger"><?php echo $subjectErr; ?></span>
 
             <label for="staffEmail">Email:</label>
             <input class="form-control" type="email" name="staffEmail" value="<?php echo $update_email; ?>">
-            <span><?php echo $emailErr; ?></span>
+            <span class="alert-danger"><?php echo $emailErr; ?></span>
 
             <label for="staffAddress">Address:</label>
             <input class="form-control" type="text" name="staffAddress" value="<?php echo $update_address; ?>">
-            <span><?php echo $addressErr; ?></span>
+            <span class="alert-danger"><?php echo $addressErr; ?></span>
 
             <label for="staffDOJ">Date of Joining:</label>
             <input class="form-control" type="date" name="staffDOJ" value="<?php echo $update_doj; ?>">
-            <span><?php echo $dojErr; ?></span>
+            <span class="alert-danger"><?php echo $dojErr; ?></span>
 
             <label for="staffDesc">Description:</label>
             <textarea name="staffDesc"><?php echo $update_desc; ?></textarea>
-            <span><?php echo $descErr; ?></span>
+            <span class="alert-danger"><?php echo $descErr; ?></span>
 
             <label for="displayType">Display Type:</label>
             <select name="displayType" id="display-type">
@@ -213,9 +228,9 @@ if ($update_id) {
                 <option value="public">Public</option>
                 <option value="private">Private</option>
             </select>
-            <input class="form-control" type="hidden" name="displayType" value="<?php echo $update_display_type; ?>">
-            <span><?php echo $duplicateEntryError; ?></span>
-            <input class="d-block mx-auto mt-3 btn btn-danger type=" submit" name="submit" value="Register/Update">
+            <input class="form-control" type="hidden" name="display_type" value="<?php echo $update_display_type; ?>">
+            <span class="alert-danger"><?php echo $duplicateEntryError; ?></span>
+            <input type="submit" class="d-block mx-auto mt-3 btn btn-danger" name="submit" value="Register">
         </form>
     </div>
 </body>
