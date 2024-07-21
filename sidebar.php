@@ -5,7 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 require_once "./includes/connection_DB.php";
 $logged_user = "";
-$logged_user = $_SESSION['user_name'];
+$logged_user = isset($_SESSION['user_name']) ? $_SESSION['user_name'] : "";
 
 // Initialize userType with a default value
 $userType = "";

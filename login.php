@@ -65,6 +65,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $_SESSION['user_name'] = $username;
         $_SESSION['password'] = $password;
         $_SESSION['user_type'] = $userType;
+        $_SESSION['logged_in'] = true;
         header("location: dashboard.php");
     }
 

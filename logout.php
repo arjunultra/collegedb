@@ -1,5 +1,6 @@
 <?php
 session_start();
+session_unset();
 session_destroy();
 echo "<p class='text-bg-info text-center'>Logout Success</p>";
 ?>
@@ -16,7 +17,11 @@ echo "<p class='text-bg-info text-center'>Logout Success</p>";
 
 <body>
     <a class="btn btn-success w-25 d-block mx-auto mt-5" href="login.php">Go to Login</a>
-
+    <script>
+        setTimeout(function () {
+            window.location.href = "login.php";
+        }, 10000); // 15 seconds in milliseconds
+    </script>
 </body>
 
 </html>

@@ -1,4 +1,12 @@
 <?php
+session_start();
+
+// Check if the session is valid
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    // Redirect to login page or show an error message
+    header("Location: login.php");
+    exit();
+}
 require_once "./includes/connection_DB.php";
 $rows = [];
 $sqlListing = "SELECT * FROM staff Where display_type = 'public'";

@@ -1,4 +1,12 @@
 <?php
+session_start();
+
+// Check if the session is valid
+if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
+    // Redirect to login page or show an error message
+    header("Location: login.php");
+    exit();
+}
 require_once "./includes/connection_DB.php";
 
 // Variables
@@ -10,23 +18,22 @@ $photoErr = $nameErr = $qualificationErr = $experienceErr = $mobileErr = $subjec
 // Update variables
 $update_id = isset($_REQUEST['update_id']) ? $_REQUEST['update_id'] : "";
 $update_photo = $update_name = $update_Qualification = $update_experience = $update_mobile = $update_subject = $update_email = $update_address = $update_doj = $update_desc = $update_display_type = "";
-// table creation
+
+// Table creation
 $createTableQuery = "CREATE TABLE IF NOT EXISTS staff (
     id INT AUTO_INCREMENT PRIMARY KEY,
     photo VARCHAR(255),
     name VARCHAR(255) NOT NULL,
     qualification VARCHAR(255) NOT NULL,
     experience INT NOT NULL,
-    mobile VARCHAR(255) NOT NULL,
+    mobile VARCHAR(255) NOT NULL UNIQUE,
     subject VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL UNIQUE,
     address VARCHAR(255) NOT NULL,
     doj DATE NOT NULL,
     description VARCHAR(255) NOT NULL,
     display_type VARCHAR(255))";
-if (mysqli_query($conn, $createTableQuery)) {
-    $msg = "Table checked/created successfully.";
-} else {
+if (!mysqli_query($conn, $createTableQuery)) {
     echo "Error creating table: " . mysqli_error($conn);
 }
 
@@ -93,8 +100,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $displayTypeErr = "Please specify your display status";
         $isValid = false;
     }
-    // file upload validation
-// File upload validation
+
+    // File upload validation
     if ($staffPhoto) {
         $target_dir = "uploads/";
         $target_file = $target_dir . basename($staffPhoto);
@@ -102,7 +109,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $check = getimagesize($_FILES['staffPhoto']['tmp_name']);
         $fileSize = $_FILES['staffPhoto']['size'];
         if ($imageFileType == "svg") {
-            // Basic SVG validation
             $fileContent = file_get_contents($_FILES['staffPhoto']['tmp_name']);
             $check = strpos($fileContent, '<svg') !== false;
         } else {
@@ -133,56 +139,55 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     if ($isValid) {
-        // Handle file upload
-        if ($staffPhoto) {
-            $target_dir = "uploads/";
-            $target_file = $target_dir . basename($staffPhoto);
-            move_uploaded_file($_FILES['staffPhoto']['tmp_name'], $target_file);
-            $isValid = true;
-        }
-
+        // Check for duplicate mobile number or email
+        $checkQuery = "SELECT * FROM staff WHERE (mobile='$staffMobile' OR email='$staffEmail')";
         if ($update_id) {
-            // Update existing record
-            $sql = "UPDATE staff SET 
-                    photo='$staffPhoto', 
-                    name='$staffName', 
-                    qualification='$staffQualification', 
-                    experience='$staffExperience', 
-                    mobile='$staffMobile', 
-                    subject='$staffSubject', 
-                    email='$staffEmail', 
-                    address='$staffAddress', 
-                    doj='$staffDOJ', 
-                    description='$staffDesc', 
-                    display_type='$displayType' 
-                    WHERE id='$update_id'";
-        } else {
-            // Insert new record
-            $sql = "INSERT INTO staff (photo, name, qualification, experience, mobile, subject, email, address, doj, description, display_type) VALUES 
-                    ('$staffPhoto', '$staffName', '$staffQualification', '$staffExperience', '$staffMobile', '$staffSubject', '$staffEmail', '$staffAddress', '$staffDOJ', '$staffDesc', '$displayType')";
-        }
-        // Execute update query
-        if (mysqli_query($conn, $sql)) {
-            echo "<p class='text-bg-primary p-2 mt-4'>Record updated successfully.</p><br> <script>setTimeout(function() {
-                window.location.href = 'staff_registration_table.php';
-            }, 4000);</script>";
-        } else {
-            echo "Error updating record: " . mysqli_error($conn);
-        }
-    } else {
-        // Insert new record
-        $sql = "INSERT INTO staff (photo, name, qualification, experience, mobile, subject, email, address, doj, description, display_type) VALUES 
-        ('$staffPhoto', '$staffName', '$staffQualification', '$staffExperience', '$staffMobile', '$staffSubject', '$staffEmail', '$staffAddress', '$staffDOJ', '$staffDesc', '$displayType')";
-
-        // Execute insert query
-        if (mysqli_query($conn, $sql)) {
-            echo "<p class='text-bg-success p-2 mt-4'>New record created successfully</p><br> <script>setTimeout(function() {
-                window.location.href = 'staff_registration.php';
-            }, 4000);</script>";
-        } else {
-            echo "Error inserting record: " . mysqli_error($conn);
+            $checkQuery .= " AND id != '$update_id'";
         }
 
+        $result = mysqli_query($conn, $checkQuery);
+        if (mysqli_num_rows($result) > 0) {
+            $duplicateEntryError = "A staff member with this mobile number or email already exists.";
+            $isValid = false;
+        }
+
+        if ($isValid) {
+            if ($update_id) {
+                // Update existing record
+                $sql = "UPDATE staff SET 
+                        photo='$staffPhoto', 
+                        name='$staffName', 
+                        qualification='$staffQualification', 
+                        experience='$staffExperience', 
+                        mobile='$staffMobile', 
+                        subject='$staffSubject', 
+                        email='$staffEmail', 
+                        address='$staffAddress', 
+                        doj='$staffDOJ', 
+                        description='$staffDesc', 
+                        display_type='$displayType' 
+                        WHERE id='$update_id'";
+            } else {
+                // Insert new record
+                $sql = "INSERT INTO staff (photo, name, qualification, experience, mobile, subject, email, address, doj, description, display_type) VALUES 
+                        ('$staffPhoto', '$staffName', '$staffQualification', '$staffExperience', '$staffMobile', '$staffSubject', '$staffEmail', '$staffAddress', '$staffDOJ', '$staffDesc', '$displayType')";
+            }
+
+            // Execute query
+            if (mysqli_query($conn, $sql)) {
+                if ($update_id) {
+                    echo "<p class='text-bg-primary p-2 mt-4'>Record updated successfully.</p><br> <script>setTimeout(function() {
+                        window.location.href = 'staff_registration_table.php';
+                    }, 4000);</script>";
+                } else {
+                    echo "<p class='text-bg-success p-2 mt-4'>New record created successfully</p><br> <script>setTimeout(function() {
+                        window.location.href = 'staff_registration.php';
+                    }, 4000);</script>";
+                }
+            } else {
+                echo "Error updating record: " . mysqli_error($conn);
+            }
+        }
     }
 }
 
@@ -203,6 +208,7 @@ if ($update_id) {
         $update_display_type = $row['display_type'];
     }
 }
+
 // Fetch subjects data from subjects table
 $sqlSubjects = "SELECT * FROM subjects";
 $resultSubjects = mysqli_query($conn, $sqlSubjects);
