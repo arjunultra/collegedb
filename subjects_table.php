@@ -76,6 +76,7 @@ $result = mysqli_query($conn, $sql);
     <?php
     mysqli_close($conn);
     ?>
+    <a class="btn btn-success d-block mx-auto w-25 text-uppercase" href="subjects_form.php">Go to Form</a>
 </body>
 
 </html>

@@ -23,6 +23,7 @@ if (mysqli_num_rows($resultListing) > 0) {
 </head>
 
 <body>
+    <?php include_once "./sidebar.php" ?>
     <div class="justify-content-center align-items-center d-flex row vh-100">
         <?php
         if (!empty($rows)) {

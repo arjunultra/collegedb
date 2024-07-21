@@ -5,7 +5,7 @@ require_once "./includes/connection_DB.php";
 $staffPhoto = $staffName = $staffQualification = $staffExperience = $staffMobile = $staffSubject = $staffEmail = $staffAddress = $staffDOJ = $staffDesc = $displayType = $subjectName = "";
 
 // Error variables
-$photoErr = $nameErr = $qualificationErr = $experienceErr = $mobileErr = $subjectErr = $emailErr = $addressErr = $dojErr = $descErr = $duplicateEntryError = "";
+$photoErr = $nameErr = $qualificationErr = $experienceErr = $mobileErr = $subjectErr = $emailErr = $addressErr = $dojErr = $descErr = $displayTypeErr = $duplicateEntryError = "";
 
 // Update variables
 $update_id = isset($_REQUEST['update_id']) ? $_REQUEST['update_id'] : "";
@@ -49,12 +49,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Validation
     $isValid = true;
 
-    if (!preg_match("/^[a-zA-Z ]*$/", $staffName)) {
+    if (!preg_match("/^[a-zA-Z ]*$/", $staffName) || empty($staffName)) {
         $nameErr = "Invalid name format";
         $isValid = false;
     }
     if (!preg_match("/^[\w\s!@#$%^&*(),.?\":{}|<>]*$/", $staffQualification)) {
         $qualificationErr = "Invalid qualification format";
+        $isValid = false;
+    }
+    if (empty($staffQualification)) {
+        $qualificationErr = "Staff qualification cannot be empty!";
         $isValid = false;
     }
     if (!preg_match("/^[0-9]+$/", $staffExperience)) {
@@ -85,9 +89,47 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $descErr = "Invalid description format";
         $isValid = false;
     }
-    if (!preg_match("/^[a-zA-Z0-9 ]*$/", $displayType)) {
-        $duplicateEntryError = "Invalid display type format";
+    if (empty($displayType)) {
+        $displayTypeErr = "Please specify your display status";
         $isValid = false;
+    }
+    // file upload validation
+// File upload validation
+    if ($staffPhoto) {
+        $target_dir = "uploads/";
+        $target_file = $target_dir . basename($staffPhoto);
+        $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
+        $check = getimagesize($_FILES['staffPhoto']['tmp_name']);
+        $fileSize = $_FILES['staffPhoto']['size'];
+        if ($imageFileType == "svg") {
+            // Basic SVG validation
+            $fileContent = file_get_contents($_FILES['staffPhoto']['tmp_name']);
+            $check = strpos($fileContent, '<svg') !== false;
+        } else {
+            $check = getimagesize($_FILES['staffPhoto']['tmp_name']);
+        }
+
+        if ($check === false) {
+            $photoErr = "File is not an image.";
+            $isValid = false;
+        }
+
+        if ($fileSize > 15000000) { // 15 MB
+            $photoErr = "File is too large. Maximum allowed size is 15 MB.";
+            $isValid = false;
+        }
+
+        if ($imageFileType != "jpg" && $imageFileType != "svg") {
+            $photoErr = "Only JPG and SVG files are allowed.";
+            $isValid = false;
+        }
+
+        if ($isValid) {
+            if (!move_uploaded_file($_FILES['staffPhoto']['tmp_name'], $target_file)) {
+                $photoErr = "There was an error uploading your file.";
+                $isValid = false;
+            }
+        }
     }
 
     if ($isValid) {
@@ -96,6 +138,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $target_dir = "uploads/";
             $target_file = $target_dir . basename($staffPhoto);
             move_uploaded_file($_FILES['staffPhoto']['tmp_name'], $target_file);
+            $isValid = true;
         }
 
         if ($update_id) {
@@ -118,16 +161,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $sql = "INSERT INTO staff (photo, name, qualification, experience, mobile, subject, email, address, doj, description, display_type) VALUES 
                     ('$staffPhoto', '$staffName', '$staffQualification', '$staffExperience', '$staffMobile', '$staffSubject', '$staffEmail', '$staffAddress', '$staffDOJ', '$staffDesc', '$displayType')";
         }
-
-        // Execute query
+        // Execute update query
         if (mysqli_query($conn, $sql)) {
-            echo $update_id ? "Record updated successfully" : "New record created successfully";
+            echo "<p class='text-bg-primary p-2 mt-4'>Record updated successfully.</p><br> <script>setTimeout(function() {
+                window.location.href = 'staff_registration_table.php';
+            }, 4000);</script>";
         } else {
-            echo "Error: " . $sql . "" . mysqli_error($conn);
+            echo "Error updating record: " . mysqli_error($conn);
+        }
+    } else {
+        // Insert new record
+        $sql = "INSERT INTO staff (photo, name, qualification, experience, mobile, subject, email, address, doj, description, display_type) VALUES 
+        ('$staffPhoto', '$staffName', '$staffQualification', '$staffExperience', '$staffMobile', '$staffSubject', '$staffEmail', '$staffAddress', '$staffDOJ', '$staffDesc', '$displayType')";
+
+        // Execute insert query
+        if (mysqli_query($conn, $sql)) {
+            echo "<p class='text-bg-success p-2 mt-4'>New record created successfully</p><br> <script>setTimeout(function() {
+                window.location.href = 'staff_registration.php';
+            }, 4000);</script>";
+        } else {
+            echo "Error inserting record: " . mysqli_error($conn);
         }
 
-        // Close connection
-        mysqli_close($conn);
     }
 }
 
@@ -174,53 +229,54 @@ if (mysqli_num_rows($resultSubjects) > 0) {
 </head>
 
 <body>
+    <?php include_once "./sidebar.php" ?>
     <div class="container-md d-flex flex-column align-items-center justify-content-center">
         <h1 class="main-title text-center">Staff Registration Form</h1>
         <form class="w-75" action="<?php echo $_SERVER["PHP_SELF"]; ?>" method="post" enctype="multipart/form-data">
             <input class="form-control" type="hidden" name="update_id" value="<?php echo $update_id; ?>">
             <label for="staffPhoto">Photo:</label>
             <input class="form-control" type="file" name="staffPhoto">
-            <span class="alert-danger"><?php echo $photoErr; ?></span>
+            <span class="text-bg-danger"><?php echo $photoErr; ?></span>
 
             <label for="staffName">Name:</label>
             <input class="form-control" type="text" name="staffName" value="<?php echo $update_name; ?>">
-            <span class="alert-danger"><?php echo $nameErr; ?></span>
+            <span class="text-bg-danger"><?php echo $nameErr; ?></span>
 
             <label for="staffQualification">Qualification:</label>
             <input class="form-control" type="text" name="staffQualification"
                 value="<?php echo $update_Qualification; ?>">
-            <span class="alert-danger"><?php echo $qualificationErr; ?></span>
+            <span class="text-bg-danger"><?php echo $qualificationErr; ?></span>
 
             <label for="staffExperience">Experience:</label>
             <input class="form-control" type="text" name="staffExperience" value="<?php echo $update_experience; ?>">
-            <span class="alert-danger"><?php echo $experienceErr; ?></span>
+            <span class="text-bg-danger"><?php echo $experienceErr; ?></span>
 
             <label for="staffMobile">Mobile:</label>
             <input class="form-control" type="text" name="staffMobile" value="<?php echo $update_mobile; ?>">
-            <span class="alert-danger"><?php echo $mobileErr; ?></span>
+            <span class="text-bg-danger"><?php echo $mobileErr; ?></span>
 
             <label for="staffSubject">Subject:</label>
             <select name="subject_select" id="subject-select">
                 <option selected value="">Select a Subject</option>
                 <?php echo $subjectOptions ?>
             </select>
-            <span class="alert-danger"><?php echo $subjectErr; ?></span>
+            <span class="text-bg-danger"><?php echo $subjectErr; ?></span>
 
             <label for="staffEmail">Email:</label>
             <input class="form-control" type="email" name="staffEmail" value="<?php echo $update_email; ?>">
-            <span class="alert-danger"><?php echo $emailErr; ?></span>
+            <span class="text-bg-danger"><?php echo $emailErr; ?></span>
 
             <label for="staffAddress">Address:</label>
             <input class="form-control" type="text" name="staffAddress" value="<?php echo $update_address; ?>">
-            <span class="alert-danger"><?php echo $addressErr; ?></span>
+            <span class="text-bg-danger"><?php echo $addressErr; ?></span>
 
             <label for="staffDOJ">Date of Joining:</label>
             <input class="form-control" type="date" name="staffDOJ" value="<?php echo $update_doj; ?>">
-            <span class="alert-danger"><?php echo $dojErr; ?></span>
+            <span class="text-bg-danger"><?php echo $dojErr; ?></span>
 
             <label for="staffDesc">Description:</label>
             <textarea name="staffDesc"><?php echo $update_desc; ?></textarea>
-            <span class="alert-danger"><?php echo $descErr; ?></span>
+            <span class="text-bg-danger"><?php echo $descErr; ?></span>
 
             <label for="displayType">Display Type:</label>
             <select name="displayType" id="display-type">
@@ -229,10 +285,15 @@ if (mysqli_num_rows($resultSubjects) > 0) {
                 <option value="private">Private</option>
             </select>
             <input class="form-control" type="hidden" name="display_type" value="<?php echo $update_display_type; ?>">
-            <span class="alert-danger"><?php echo $duplicateEntryError; ?></span>
-            <input type="submit" class="d-block mx-auto mt-3 btn btn-danger" name="submit" value="Register">
+            <span class="text-bg-danger"><?php echo $displayTypeErr; ?></span>
+            <div class="d-flex justify-content-center gap-3">
+                <input type="submit" class="d-block mt-3 btn btn-danger" name="submit" value="Register">
+                <a class="btn btn-success d-block mt-3" href="staff_registration_table.php">Go to Table</a>
+            </div>
         </form>
     </div>
 </body>
 
 </html>
+<?php // Close connection
+mysqli_close($conn);

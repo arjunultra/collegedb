@@ -40,6 +40,7 @@ if (mysqli_query($conn, $sqlCreateSubjects)) { // Check if the table was actuall
 </head>
 
 <body>
+    <?php include_once "./sidebar.php" ?>
     <h1 class="main-title text-center">Enter Your Subjects</h1>
     <form method="POST" class="form w-100 text-center" action="<?php echo $_SERVER["PHP_SELF"]; ?>">
         <input type="hidden" name="update_id" value="<?= $update_id ?>">
