@@ -6,7 +6,7 @@ if (isset($_REQUEST['delete_id'])) {
     $delete_id = $_REQUEST['delete_id'];
     $deleteQuery = "DELETE FROM staff WHERE id='$delete_id'";
     if (mysqli_query($conn, $deleteQuery)) {
-        echo "Record deleted successfully.";
+        echo "<p class='bg-danger text-light p-3'>Record deleted successfully.</p>";
     } else {
         echo "Error deleting record: " . mysqli_error($conn);
     }
@@ -64,7 +64,7 @@ $result = mysqli_query($conn, $query);
                     <td class="row">
                         <a class="btn btn-outline-primary"
                             href="staff_registration.php?update_id=<?php echo $row['id']; ?>">Update</a>
-                        <a class="btn btn-danger" href="list_staff.php?delete_id=<?php echo $row['id']; ?>"
+                        <a class="btn btn-danger" href="staff_registration_table.php?delete_id=<?php echo $row['id']; ?>"
                             onclick="return confirm('Are you sure you want to delete this record?');">Delete</a>
                     </td>
                 </tr>

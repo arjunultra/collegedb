@@ -8,9 +8,9 @@ if (isset($_SESSION["user_name"]) && isset($_SESSION["user_type"])) {
     $userType = $_SESSION["user_type"];
 
     echo "<p class='display-4 text-center text-bg-success'>Hello " . $user_name . " welcome 👋</p>";
-    echo "<p class='display-6 text-center text-bg-info'>You are logged in as " . $userType . "</p>";
+    echo "<p class='display-6 text-center text-bg-info p-3'>You are logged in as " . "<span class='text-bg-warning text-uppercase px-3 rounded-5'>{$userType}</span>" . "</p>";
 
-    $sqlResult = "SELECT * FROM messages WHERE card_title = '$user_name'";
+    $sqlResult = "SELECT * FROM messages WHERE card_title = '$user_name' ORDER BY created_at DESC";
     $resultMessage = mysqli_query($conn, $sqlResult);
 
     $senderName = "";
@@ -22,19 +22,14 @@ if (isset($_SESSION["user_name"]) && isset($_SESSION["user_type"])) {
 
     if (mysqli_num_rows($resultMessage) > 0) {
         while ($row = mysqli_fetch_assoc($resultMessage)) {
-            $senderName = $row['sender_name'];
-            $senderMessage = $row['sender_message'];
-            $createdAt = $row['created_at'];
+            $sender[] = $row['sender_name'];
+            $message[] = $row['sender_message'];
+            $timeStamp[] = $row['created_at'];
         }
     } else {
         $errorMsg = "<h2 class='text-bg-danger text-center'>You have no messages!</h2>";
     }
 
-    if (!empty($senderName) && !empty($senderMessage)) {
-        $sender = explode(',', $senderName);
-        $message = explode(',', $senderMessage);
-        $timeStamp = explode(',', $createdAt);
-    }
 } else {
     // Redirect to login if session variables are not set
     header("Location: login.php");
@@ -62,7 +57,7 @@ if (isset($_SESSION["user_name"]) && isset($_SESSION["user_type"])) {
             <div class='container d-none'></div>
         <?php } else { ?>
             <div id="resultTableContainer" class="table-responsive">
-                <?= "<h2 class='text-center display-5'><span class='text-capitalize display-3 text-bg-danger rounded-pill px-5'>{$user_name}'s</span> Dashboard</h2>" ?>
+                <?= "<h2 class='text-center my-5 display-5'><span class='text-capitalize display-3 text-bg-danger rounded-5 px-5'>{$user_name}'s</span> Dashboard</h2>" ?>
                 <table id="resultTable" class="table table-striped table-hover table-bordered">
                     <thead class="table-dark bg-primary">
                         <tr>

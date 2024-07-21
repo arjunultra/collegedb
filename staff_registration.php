@@ -46,6 +46,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $staffExperience = isset($_POST['staffExperience']) ? $_POST['staffExperience'] : "";
     $staffMobile = isset($_POST['staffMobile']) ? $_POST['staffMobile'] : "";
     $staffSubject = isset($_POST['staffSubject']) ? $_POST['staffSubject'] : "";
+    $subjectName = isset($_POST['subject_select']) ? $_POST['subject_select'] : "";
     $staffEmail = isset($_POST['staffEmail']) ? $_POST['staffEmail'] : "";
     $staffAddress = isset($_POST['staffAddress']) ? $_POST['staffAddress'] : "";
     $staffDOJ = isset($_POST['staffDOJ']) ? $_POST['staffDOJ'] : "";
@@ -102,12 +103,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 
     // File upload validation
-    if ($staffPhoto) {
+
+    // Default photo name
+    $photoName = $update_photo; // Use existing photo if no new photo is uploaded
+
+    // Check if a file is uploaded
+    if (isset($_FILES['staffPhoto']) && $_FILES['staffPhoto']['error'] == 0) {
+        $staffPhoto = $_FILES['staffPhoto']['name'];
         $target_dir = "uploads/";
         $target_file = $target_dir . basename($staffPhoto);
         $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
-        $check = getimagesize($_FILES['staffPhoto']['tmp_name']);
         $fileSize = $_FILES['staffPhoto']['size'];
+
+        // File upload validation
         if ($imageFileType == "svg") {
             $fileContent = file_get_contents($_FILES['staffPhoto']['tmp_name']);
             $check = strpos($fileContent, '<svg') !== false;
@@ -125,18 +133,28 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $isValid = false;
         }
 
-        if ($imageFileType != "jpg" && $imageFileType != "svg") {
-            $photoErr = "Only JPG and SVG files are allowed.";
+        if ($imageFileType != "jpg" && $imageFileType != "jpeg" && $imageFileType != "png" && $imageFileType != "gif" && $imageFileType != "svg") {
+            $photoErr = "Only JPG, PNG, GIF, and SVG files are allowed.";
             $isValid = false;
         }
 
         if ($isValid) {
-            if (!move_uploaded_file($_FILES['staffPhoto']['tmp_name'], $target_file)) {
-                $photoErr = "There was an error uploading your file.";
-                $isValid = false;
+            // Remove old photo if a new one is uploaded
+            if (!empty($update_photo) && file_exists($target_dir . $update_photo)) {
+                unlink($target_dir . $update_photo); // Delete the old file
+            }
+
+            if (move_uploaded_file($_FILES['staffPhoto']['tmp_name'], $target_file)) {
+                // File uploaded successfully
+                $photoName = $staffPhoto; // Update photo name to new one
+            } else {
+                $photoErr = "Error uploading file.";
             }
         }
     }
+
+
+
 
     if ($isValid) {
         // Check for duplicate mobile number or email
@@ -160,7 +178,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         qualification='$staffQualification', 
                         experience='$staffExperience', 
                         mobile='$staffMobile', 
-                        subject='$staffSubject', 
+                        subject='$subjectName', 
                         email='$staffEmail', 
                         address='$staffAddress', 
                         doj='$staffDOJ', 
@@ -170,7 +188,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             } else {
                 // Insert new record
                 $sql = "INSERT INTO staff (photo, name, qualification, experience, mobile, subject, email, address, doj, description, display_type) VALUES 
-                        ('$staffPhoto', '$staffName', '$staffQualification', '$staffExperience', '$staffMobile', '$staffSubject', '$staffEmail', '$staffAddress', '$staffDOJ', '$staffDesc', '$displayType')";
+                        ('$staffPhoto', '$staffName', '$staffQualification', '$staffExperience', '$staffMobile', '$subjectName', '$staffEmail', '$staffAddress', '$staffDOJ', '$staffDesc', '$displayType')";
             }
 
             // Execute query
@@ -216,7 +234,7 @@ $subjectOptions = "";
 
 if (mysqli_num_rows($resultSubjects) > 0) {
     while ($row = mysqli_fetch_assoc($resultSubjects)) {
-        $selected = ($row['subject_name'] == $subjectName) ? 'selected' : '';
+        $selected = ($row['subject_name'] == $update_subject) ? 'selected' : '';
         $subjectOptions .= "<option value='" . $row['subject_name'] . "' $selected>" . $row['subject_name'] . "</option>";
     }
 }
@@ -241,6 +259,14 @@ if (mysqli_num_rows($resultSubjects) > 0) {
         <form class="w-75" action="<?php echo $_SERVER["PHP_SELF"]; ?>" method="post" enctype="multipart/form-data">
             <input class="form-control" type="hidden" name="update_id" value="<?php echo $update_id; ?>">
             <label for="staffPhoto">Photo:</label>
+            <?php if ($update_photo): ?>
+                <!-- Show existing photo -->
+                <div class="mb-2">
+                    <p class="text-light bg-primary">Current photo: <?php echo $update_photo; ?></p>
+                    <img src="uploads/<?php echo $update_photo; ?>" alt="Existing Photo"
+                        style="max-width: 100px; max-height: 100px;">
+                </div>
+            <?php endif; ?>
             <input class="form-control" type="file" name="staffPhoto">
             <span class="text-bg-danger"><?php echo $photoErr; ?></span>
 
@@ -286,9 +312,11 @@ if (mysqli_num_rows($resultSubjects) > 0) {
 
             <label for="displayType">Display Type:</label>
             <select name="displayType" id="display-type">
-                <option selected value="">Please Select a Value</option>
-                <option value="public">Public</option>
-                <option value="private">Private</option>
+                <option value="">Please Select a Value</option>
+                <option value="public" <?php echo ($update_display_type === 'public') ? 'selected' : ''; ?>>Public
+                </option>
+                <option value="private" <?php echo ($update_display_type === 'private') ? 'selected' : ''; ?>>Private
+                </option>
             </select>
             <input class="form-control" type="hidden" name="display_type" value="<?php echo $update_display_type; ?>">
             <span class="text-bg-danger"><?php echo $displayTypeErr; ?></span>
