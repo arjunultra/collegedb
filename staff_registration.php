@@ -133,8 +133,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $isValid = false;
         }
 
-        if ($imageFileType != "jpg" && $imageFileType != "jpeg" && $imageFileType != "png" && $imageFileType != "gif" && $imageFileType != "svg") {
-            $photoErr = "Only JPG, PNG, GIF, and SVG files are allowed.";
+        if ($imageFileType != "jpg" && $imageFileType != "jpeg" && $imageFileType != "png" && $imageFileType != "svg") {
+            $photoErr = "Only JPG, PNG, and SVG files are allowed.";
             $isValid = false;
         }
 
